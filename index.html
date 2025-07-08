@@ -3,92 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Riyadh Map with Primary & Tertiary Roads</title>
+  <title>Riyadh Roads Map (Arabic to English)</title>
 
-  <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet/dist/leaflet.css"
-  />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css"
-  />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
-  />
-
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    html, body, #map {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
-    .leaflet-routing-container {
-      background: #fff;
-      border-radius: 6px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    }
+    html, body, #map { height: 100%; margin: 0; padding: 0; }
   </style>
 </head>
 <body>
-
 <div id="map"></div>
 
-<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<!-- Routing Machine JS -->
-<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
-<!-- Geocoder JS -->
-<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-<!-- osmtogeojson to convert OSM data -->
 <script src="https://unpkg.com/osmtogeojson@3.0.0/osmtogeojson.js"></script>
 
 <script>
-  // Initialize map centered on Riyadh
   const map = L.map('map').setView([24.7136, 46.6753], 12);
 
-  // Base tile layer (Carto Positron)
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution:
-      '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'&copy; OpenStreetMap contributors',
     maxZoom: 19
   }).addTo(map);
 
-  // Add search control
-  L.Control.geocoder({
-    placeholder: "Search places...",
-    defaultMarkGeocode: true
-  }).addTo(map);
-
-  // Add routing control
-  const routingControl = L.Routing.control({
-    waypoints: [],
-    routeWhileDragging: true,
-    geocoder: L.Control.Geocoder.nominatim()
-  }).addTo(map);
-
-  // On map click, add routing waypoint
-  map.on('click', function(e) {
-    const waypoints = routingControl.getWaypoints();
-    for (let i = 0; i < waypoints.length; i++) {
-      if (!waypoints[i].latLng) {
-        waypoints[i] = L.Routing.waypoint(e.latlng);
-        routingControl.setWaypoints(waypoints);
-        return;
-      }
-    }
-    waypoints.push(L.Routing.waypoint(e.latlng));
-    routingControl.setWaypoints(waypoints);
-  });
-
-  // Overpass API query for primary and tertiary roads in Riyadh bounding box
   const query = `
-    [out:json][timeout:25];
+    [out:json][timeout:60];
     (
-      way["highway"="primary"](24.5,46.4,25,47);
-      way["highway"="tertiary"](24.5,46.4,25,47);
+      way["highway"="motorway"](24.6,46.5,24.85,46.9);
+      way["highway"="primary"](24.6,46.5,24.85,46.9);
+      way["highway"="tertiary"](24.6,46.5,24.85,46.9);
     );
     out body;
     >;
@@ -103,30 +44,34 @@
     }
   })
   .then(response => response.json())
-  .then(osmData => {
-    const geojson = osmtogeojson(osmData);
-
-    // Add GeoJSON layer with custom style
+  .then(data => {
+    const geojson = osmtogeojson(data);
     L.geoJSON(geojson, {
       style: feature => {
-        const highway = feature.properties.tags.highway;
-        if (highway === 'primary') {
-          return { color: '#ff0000', weight: 5 }; // Red thick line for primary roads
-        } else if (highway === 'tertiary') {
-          return { color: '#0000ff', weight: 3, dashArray: '5,5' }; // Blue dashed line for tertiary roads
-        }
+        const type = feature.properties.tags?.highway;
+        if (type === 'motorway') return { color: '#28a745', weight: 6 };
+        if (type === 'primary') return { color: '#ff0000', weight: 5 };
+        if (type === 'tertiary') return { color: '#007bff', weight: 3, dashArray: '8,5' };
         return { color: '#999', weight: 1 };
       },
       onEachFeature: (feature, layer) => {
-        const name = feature.properties.tags['name:en'] || feature.properties.tags.name || 'Unnamed road';
-        layer.bindPopup(`<strong>${name}</strong><br>Type: ${feature.properties.tags.highway}`);
+        const tags = feature.properties.tags || {};
+        const en = tags['name:en'];
+        const ar = tags['name'];
+        let roadName = en || ar || 'Unnamed road';
+
+        // Log if it's Arabic-only
+        if (!en && ar) {
+          console.log(`Arabic only: ${ar}`);
+        }
+
+        layer.bindPopup(`<strong>${roadName}</strong><br>Type: ${tags.highway}`);
       }
     }).addTo(map);
   })
   .catch(err => {
-    console.error('Error loading OSM data:', err);
+    console.error("Error fetching OSM data:", err);
   });
 </script>
-
 </body>
 </html>
