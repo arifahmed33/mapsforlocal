@@ -3,106 +3,56 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Riyadh Map with Roads Overlay</title>
-
+<title>Road colors debug</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-
-<style>
-  html, body, #map {
-    height: 100%;
-    margin: 0; padding: 0;
-  }
-  .leaflet-routing-container {
-    background: #fff;
-    border-radius: 6px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  }
-</style>
+<style>html, body, #map { height: 100%; margin:0; }</style>
 </head>
 <body>
-
 <div id="map"></div>
-
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
-<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 <script src="https://unpkg.com/osmtogeojson@3.0.0/osmtogeojson.js"></script>
-
 <script>
-  const map = L.map('map').setView([24.7136, 46.6753], 12);
+const map = L.map('map').setView([24.7136, 46.6753], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom: 19,
+  attribution:'© OpenStreetMap contributors'
+}).addTo(map);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution:
-      '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    maxZoom: 19
-  }).addTo(map);
+const query = `
+[out:json][timeout:60];
+(
+  way["highway"="motorway"](24.6,46.5,24.85,46.9);
+  way["highway"="primary"](24.6,46.5,24.85,46.9);
+  way["highway"="tertiary"](24.6,46.5,24.85,46.9);
+);
+out body;
+>;
+out skel qt;
+`;
 
-  L.Control.geocoder({ placeholder: "Search places..." }).addTo(map);
-
-  const routingControl = L.Routing.control({
-    waypoints: [],
-    routeWhileDragging: true,
-    geocoder: L.Control.Geocoder.nominatim()
-  }).addTo(map);
-
-  map.on('click', e => {
-    const wps = routingControl.getWaypoints();
-    for(let i=0; i<wps.length; i++){
-      if(!wps[i].latLng){
-        wps[i] = L.Routing.waypoint(e.latlng);
-        routingControl.setWaypoints(wps);
-        return;
-      }
+fetch('https://overpass-api.de/api/interpreter', {
+  method:'POST',
+  body:query,
+  headers:{'Content-Type':'application/x-www-form-urlencoded'}
+})
+.then(res=>res.json())
+.then(osmData=>{
+  const geojson = osmtogeojson(osmData);
+  L.geoJSON(geojson,{
+    style: f=>{
+      const hwy = f.properties.tags ? f.properties.tags.highway : null;
+      console.log('Road highway type:', hwy);
+      if(hwy === 'motorway') return {color: '#28a745', weight: 6};
+      if(hwy === 'primary') return {color: '#ff0000', weight: 5};
+      if(hwy === 'tertiary') return {color: '#007bff', weight: 3, dashArray: '8,5'};
+      return {color:'#999', weight:1};
+    },
+    onEachFeature: (f,l)=>{
+      const name = (f.properties.tags && (f.properties.tags['name:en'] || f.properties.tags.name)) || 'Unnamed road';
+      l.bindPopup(`<strong>${name}</strong><br>Type: ${f.properties.tags ? f.properties.tags.highway : 'N/A'}`);
     }
-    wps.push(L.Routing.waypoint(e.latlng));
-    routingControl.setWaypoints(wps);
-  });
-
-  // Smaller bounding box for Riyadh to avoid timeouts
-  const bbox = [24.6, 46.5, 24.85, 46.9]; // south, west, north, east
-
-  const query = `
-    [out:json][timeout:60];
-    (
-      way["highway"="motorway"](${bbox.join(',')});
-      way["highway"="primary"](${bbox.join(',')});
-      way["highway"="tertiary"](${bbox.join(',')});
-    );
-    out body;
-    >;
-    out skel qt;
-  `;
-
-  fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    body: query,
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    }
-  })
-  .then(r => r.json())
-  .then(data => {
-    const geojson = osmtogeojson(data);
-    L.geoJSON(geojson, {
-      style: f => {
-        const hwy = f.properties.tags.highway;
-        if(hwy === 'motorway') return {color: '#28a745', weight: 6};
-        if(hwy === 'primary') return {color: '#ff0000', weight: 5};
-        if(hwy === 'tertiary') return {color: '#007bff', weight: 3, dashArray: '8,5'};
-        return {color:'#999', weight:1};
-      },
-      onEachFeature: (f, layer) => {
-        const name = f.properties.tags['name:en'] || f.properties.tags.name || 'Unnamed road';
-        layer.bindPopup(`<strong>${name}</strong><br>Type: ${f.properties.tags.highway}`);
-      }
-    }).addTo(map);
-  })
-  .catch(e => {
-    console.error("OSM data loading error:", e);
-  });
-
+  }).addTo(map);
+});
 </script>
 </body>
 </html>
