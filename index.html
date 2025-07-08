@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Custom Riyadh Roads</title>
+  <title>Live OSM Road Map</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -17,30 +17,12 @@
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet-ajax"></script>
-
   <script>
-    // Init map centered on Riyadh
     var map = L.map('map').setView([24.7136, 46.6753], 13);
 
-    // Dark map tiles
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap contributors & CartoDB',
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 19
-    }).addTo(map);
-
-    // Load your custom roads from roads.geojson
-    var customRoads = new L.GeoJSON.AJAX("roads.geojson", {
-      style: {
-        color: "yellow",
-        weight: 4
-      },
-      onEachFeature: function (feature, layer) {
-        if (feature.properties && feature.properties.name) {
-          layer.bindPopup("Road: " + feature.properties.name +
-                          (feature.properties.speed ? "<br>Speed: " + feature.properties.speed : ""));
-        }
-      }
     }).addTo(map);
   </script>
 </body>
