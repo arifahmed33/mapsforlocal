@@ -1,29 +1,85 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Live OSM Road Map</title>
+  <title>Riyadh English Roads Map</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <!-- Leaflet core -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Geocoder (search bar) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+  <!-- Routing -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+
   <style>
-    body { margin: 0; }
-    #map { height: 100vh; width: 100vw; }
+    html, body { margin: 0; padding: 0; }
+    #map { width: 100vw; height: 100vh; }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    var map = L.map('map').setView([24.7136, 46.6753], 13);
+    // Initialize map centered on Riyadh
+    const map = L.map('map').setView([24.7136, 46.6753], 13);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
+    // Dark tile layer
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OSM & CartoDB',
       maxZoom: 19
     }).addTo(map);
+
+    // Add search bar
+    L.Control.geocoder().addTo(map);
+
+    // Add routing control
+    L.Routing.control({
+      waypoints: [
+        L.latLng(24.7136, 46.6753),
+        L.latLng(24.7743, 46.7386)
+      ],
+      routeWhileDragging: true
+    }).addTo(map);
+
+    // Load Riyadh roads with English names from Overpass API
+    const overpassUrl = 'https://overpass-api.de/api/interpreter';
+    const query = `
+      [out:json][timeout:25];
+      (
+        way["highway"]["name"](24.4,46.4,24.9,46.9);
+      );
+      out body;
+      >;
+      out skel qt;
+    `;
+
+    fetch(overpassUrl, {
+      method: 'POST',
+      body: query,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+    .then(res => res.json())
+    .then(data => {
+      const geojson = osmtogeojson(data);
+      L.geoJSON(geojson, {
+        style: { color: 'yellow', weight: 2 },
+        onEachFeature: function (feature, layer) {
+          const name = feature.properties.tags['name:en'] || feature.properties.tags['name'] || 'Unnamed road';
+          layer.bindPopup(name);
+        }
+      }).addTo(map);
+    });
+
+    // Add osmtogeojson script dynamically
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/osmtogeojson@3.0.0/osmtogeojson.js';
+    document.head.appendChild(script);
   </script>
 </body>
 </html>
