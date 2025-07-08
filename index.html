@@ -1,63 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Barikoi-like Map of Riyadh</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Riyadh Map with Search & Routing</title>
 
-<!-- Leaflet CSS -->
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet/dist/leaflet.css"
-/>
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
-/>
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css"
-/>
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet/dist/leaflet.css"
+  />
+  <!-- Leaflet Routing Machine CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css"
+  />
+  <!-- Leaflet Geocoder CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
+  />
 
-<style>
-  html, body, #map {
-    margin: 0; padding: 0; height: 100%;
-  }
-  .leaflet-routing-container {
-    background: #fff;
-    border-radius: 6px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  }
-</style>
+  <style>
+    html, body, #map {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    .leaflet-routing-container {
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+  </style>
 </head>
 <body>
+
 <div id="map"></div>
 
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-<!-- Geocoder -->
-<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-
-<!-- Routing -->
+<!-- Routing Machine JS -->
 <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+<!-- Geocoder JS -->
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
 <script>
   // Initialize map centered on Riyadh
   const map = L.map('map').setView([24.7136, 46.6753], 13);
 
-  // Use Carto Positron basemap (light, roads focused)
-  L.tileLayer(
-    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution:
-        '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      maxZoom: 19
-    }
-  ).addTo(map);
+  // Add Carto Positron tiles (clean, roads emphasized)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution:
+      '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    maxZoom: 19
+  }).addTo(map);
 
-  // Add search control (Nominatim geocoder)
+  // Add search bar (Nominatim)
   L.Control.geocoder({
-    placeholder: "Search places...",
+    placeholder: "Search for places...",
     defaultMarkGeocode: true
   }).addTo(map);
 
@@ -65,11 +66,10 @@
   const routingControl = L.Routing.control({
     waypoints: [],
     routeWhileDragging: true,
-    showAlternatives: false,
     geocoder: L.Control.Geocoder.nominatim()
   }).addTo(map);
 
-  // Add waypoints on map click
+  // On map click, add routing waypoint
   map.on('click', function(e) {
     const waypoints = routingControl.getWaypoints();
     for (let i = 0; i < waypoints.length; i++) {
@@ -83,5 +83,6 @@
     routingControl.setWaypoints(waypoints);
   });
 </script>
+
 </body>
 </html>
