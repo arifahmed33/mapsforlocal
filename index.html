@@ -84,6 +84,7 @@
   });
 
   // Overpass API query for primary and tertiary roads in Riyadh bounding box
+  // Bounding box roughly around Riyadh: south, west, north, east
   const query = `
     [out:json][timeout:25];
     (
@@ -106,14 +107,15 @@
   .then(osmData => {
     const geojson = osmtogeojson(osmData);
 
-    // Add GeoJSON layer with custom style
+    // Add GeoJSON layer with custom style for primary and tertiary roads
     L.geoJSON(geojson, {
       style: feature => {
         const highway = feature.properties.tags.highway;
         if (highway === 'primary') {
-          return { color: '#ff0000', weight: 5 }; // Red thick line for primary roads
-        } else if (highway === 'tertiary') {
-          return { color: '#0000ff', weight: 3, dashArray: '5,5' }; // Blue dashed line for tertiary roads
+          return { color: '#FF5733', weight: 5 }; // Bright red thick line for primary roads
+        }
+        if (highway === 'tertiary') {
+          return { color: '#337AFF', weight: 3, dashArray: '8,5' }; // Blue dashed line for tertiary roads
         }
         return { color: '#999', weight: 1 };
       },
