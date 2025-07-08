@@ -1,37 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Custom Barikoi-like Map</title>
-  
+  <title>Roads Only Map with Routing</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet/dist/leaflet.css"
-  />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
-  />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+
   <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-    }
-    #map {
-      width: 100%;
-      height: 100%;
-    }
-    .leaflet-routing-container {
-      background: white;
-      border-radius: 5px;
-    }
+    body, html { margin: 0; height: 100%; }
+    #map { height: 100vh; width: 100vw; }
   </style>
 </head>
 <body>
@@ -40,10 +20,6 @@
 
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-<!-- Geocoder (Search Bar) -->
-<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-
 <!-- Routing -->
 <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
 
@@ -51,40 +27,22 @@
   // Initialize the map centered on Riyadh
   const map = L.map('map').setView([24.7136, 46.6753], 13);
 
-  // Add OpenStreetMap tiles (can be swapped with Barikoi tiles if you have access)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap contributors'
+  // Add Stamen Toner Roads tiles (mostly roads)
+  L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/toner-lines/{z}/{x}/{y}.png', {
+    maxZoom: 20,
+    attribution: 'Map tiles by Stamen Design, CC BY 3.0 — Map data © OpenStreetMap contributors'
   }).addTo(map);
-
-  // Add search control (Nominatim)
-  const geocoder = L.Control.geocoder({
-    defaultMarkGeocode: false
-  })
-  .on('markgeocode', function(e) {
-    const bbox = e.geocode.bbox;
-    const poly = L.polygon([
-      bbox.getSouthEast(),
-      bbox.getNorthEast(),
-      bbox.getNorthWest(),
-      bbox.getSouthWest()
-    ]).addTo(map);
-    map.fitBounds(poly.getBounds());
-  })
-  .addTo(map);
 
   // Add routing control
   const routingControl = L.Routing.control({
     waypoints: [],
-    routeWhileDragging: true,
-    geocoder: L.Control.Geocoder.nominatim(),
-    showAlternatives: true
+    routeWhileDragging: true
   }).addTo(map);
 
-  // When user clicks on map, add waypoint
+  // Add waypoints on map click
   map.on('click', function(e) {
     const waypoints = routingControl.getWaypoints();
-    // Replace first empty waypoint or add new one
+    // Fill first empty waypoint or add new one
     for (let i = 0; i < waypoints.length; i++) {
       if (!waypoints[i].latLng) {
         waypoints[i] = L.Routing.waypoint(e.latlng);
@@ -92,11 +50,9 @@
         return;
       }
     }
-    // Otherwise add new waypoint
     waypoints.push(L.Routing.waypoint(e.latlng));
     routingControl.setWaypoints(waypoints);
   });
-
 </script>
 
 </body>
