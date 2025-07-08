@@ -3,19 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Riyadh Map with Search & Routing</title>
+  <title>Riyadh Map with Primary & Tertiary Roads</title>
 
   <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet/dist/leaflet.css"
   />
-  <!-- Leaflet Routing Machine CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css"
   />
-  <!-- Leaflet Geocoder CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
@@ -44,21 +42,23 @@
 <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
 <!-- Geocoder JS -->
 <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+<!-- osmtogeojson to convert OSM data -->
+<script src="https://unpkg.com/osmtogeojson@3.0.0/osmtogeojson.js"></script>
 
 <script>
   // Initialize map centered on Riyadh
-  const map = L.map('map').setView([24.7136, 46.6753], 13);
+  const map = L.map('map').setView([24.7136, 46.6753], 12);
 
-  // Add Carto Positron tiles (clean, roads emphasized)
+  // Base tile layer (Carto Positron)
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution:
       '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     maxZoom: 19
   }).addTo(map);
 
-  // Add search bar (Nominatim)
+  // Add search control
   L.Control.geocoder({
-    placeholder: "Search for places...",
+    placeholder: "Search places...",
     defaultMarkGeocode: true
   }).addTo(map);
 
@@ -81,6 +81,50 @@
     }
     waypoints.push(L.Routing.waypoint(e.latlng));
     routingControl.setWaypoints(waypoints);
+  });
+
+  // Overpass API query for primary and tertiary roads in Riyadh bounding box
+  const query = `
+    [out:json][timeout:25];
+    (
+      way["highway"="primary"](24.5,46.4,25,47);
+      way["highway"="tertiary"](24.5,46.4,25,47);
+    );
+    out body;
+    >;
+    out skel qt;
+  `;
+
+  fetch('https://overpass-api.de/api/interpreter', {
+    method: 'POST',
+    body: query,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
+  })
+  .then(response => response.json())
+  .then(osmData => {
+    const geojson = osmtogeojson(osmData);
+
+    // Add GeoJSON layer with custom style
+    L.geoJSON(geojson, {
+      style: feature => {
+        const highway = feature.properties.tags.highway;
+        if (highway === 'primary') {
+          return { color: '#ff0000', weight: 5 }; // Red thick line for primary roads
+        } else if (highway === 'tertiary') {
+          return { color: '#0000ff', weight: 3, dashArray: '5,5' }; // Blue dashed line for tertiary roads
+        }
+        return { color: '#999', weight: 1 };
+      },
+      onEachFeature: (feature, layer) => {
+        const name = feature.properties.tags['name:en'] || feature.properties.tags.name || 'Unnamed road';
+        layer.bindPopup(`<strong>${name}</strong><br>Type: ${feature.properties.tags.highway}`);
+      }
+    }).addTo(map);
+  })
+  .catch(err => {
+    console.error('Error loading OSM data:', err);
   });
 </script>
 
