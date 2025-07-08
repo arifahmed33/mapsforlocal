@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Riyadh Map with Primary & Tertiary Roads</title>
+  <title>Riyadh Map with Motorway, Primary & Tertiary Roads</title>
 
   <!-- Leaflet CSS -->
   <link
@@ -83,11 +83,11 @@
     routingControl.setWaypoints(waypoints);
   });
 
-  // Overpass API query for primary and tertiary roads in Riyadh bounding box
-  // Bounding box roughly around Riyadh: south, west, north, east
+  // Overpass API query for motorway, primary, tertiary roads in Riyadh bounding box
   const query = `
     [out:json][timeout:25];
     (
+      way["highway"="motorway"](24.5,46.4,25,47);
       way["highway"="primary"](24.5,46.4,25,47);
       way["highway"="tertiary"](24.5,46.4,25,47);
     );
@@ -107,15 +107,18 @@
   .then(osmData => {
     const geojson = osmtogeojson(osmData);
 
-    // Add GeoJSON layer with custom style for primary and tertiary roads
+    // Add GeoJSON layer with custom styles for motorway, primary, tertiary roads
     L.geoJSON(geojson, {
       style: feature => {
         const highway = feature.properties.tags.highway;
+        if (highway === 'motorway') {
+          return { color: '#28a745', weight: 6 }; // Green thick for motorways
+        }
         if (highway === 'primary') {
-          return { color: '#FF5733', weight: 5 }; // Bright red thick line for primary roads
+          return { color: '#ff0000', weight: 5 }; // Red thick for primary
         }
         if (highway === 'tertiary') {
-          return { color: '#337AFF', weight: 3, dashArray: '8,5' }; // Blue dashed line for tertiary roads
+          return { color: '#007bff', weight: 3, dashArray: '8,5' }; // Blue dashed for tertiary
         }
         return { color: '#999', weight: 1 };
       },
